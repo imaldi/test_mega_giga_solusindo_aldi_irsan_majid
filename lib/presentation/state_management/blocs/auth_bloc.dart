@@ -25,7 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       var newState = response.fold((l) => AuthFailed(l), (r) => AuthSuccess(r.data ?? const UserData()));
       emit(newState);
     });
-    on<RegisterEvent>((event, emit) async {
+    on<CheckLoginStatusEvent>((event, emit) async {
       emit(AuthLoading());
       var response = await authRepository.checkLoginStatusCache();
       var newState = response.fold((l) => AuthFailed(l), (r) => AuthSuccess(r.data ?? const UserData()));

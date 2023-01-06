@@ -3,51 +3,78 @@ import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/core/error/failures.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/data/model/auth/auth_success_response.dart';
 
 import '../../core/error/exceptions.dart';
 import '../../core/platform/network_info.dart';
+import '../../core/resource/const/shared_preference_keys.dart';
 import '../../core/resource/const/urls.dart';
 
 abstract class AuthRepository {
-  Future<Either<Failure,AuthSuccessResponse>> userRegister(String userName, String profileName, String password);
-  Future<Either<Failure,AuthSuccessResponse>> userLogin(String userName, String password);
-  Future<Either<Failure,AuthSuccessResponse>> checkLoginStatusCache();
+  Future<Either<Failure, AuthSuccessResponse>> userRegister(
+      String userName, String profileName, String password);
+
+  Future<Either<Failure, AuthSuccessResponse>> userLogin(
+      String userName, String password);
+
+  Future<Either<Failure, AuthSuccessResponse>> checkLoginStatusCache();
 }
 
 class AuthRepositoryImpl extends AuthRepository {
   final NetworkInfo networkInfo;
+
   AuthRepositoryImpl(this.networkInfo);
+
   @override
-  Future<Either<Failure, AuthSuccessResponse>> checkLoginStatusCache() {
-    // TODO: implement checkLoginStatusCache
-    throw UnimplementedError();
+  Future<Either<Failure, AuthSuccessResponse>> checkLoginStatusCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    var token = prefs.getString(userToken);
+    if (token != null) {
+      var username = prefs.getString(userName);
+      var userprofilename = prefs.getString(userProfileName);
+      return Right(AuthSuccessResponse(
+          data: UserData(
+              username: username, profileName: userprofilename, token: token)));
+    }
+    return Left(CacheFailure());
   }
 
   @override
-  Future<Either<Failure, AuthSuccessResponse>> userLogin(String userName, String password) async {
+  Future<Either<Failure, AuthSuccessResponse>> userLogin(
+      String userName, String password) async {
     if (!(await networkInfo.isConnected)) return Left(NoInternetFailure());
 
     try {
       final url = Uri.http(baseUrl, loginUrl);
       print("URL login remote data source: $url");
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
-        headers: {'Accept': '*/*','Content-Type': "application/json"},
+        headers: {'Accept': '*/*', 'Content-Type': "application/json"},
         body: jsonEncode({
           'username': userName,
           'password': password,
         }),
-      ).timeout(const Duration(seconds: 5), onTimeout: (){
+      )
+          .timeout(const Duration(seconds: 5), onTimeout: () {
         throw TimeoutException("Time Out");
       });
 
       print("Response Login: $response");
 
       if (response.statusCode == 200) {
-        AuthSuccessResponse authSuccessResponse = AuthSuccessResponse.fromJson(jsonDecode(response.body));
-        // TODO cache dengan shared Pref
+        AuthSuccessResponse authSuccessResponse =
+            AuthSuccessResponse.fromJson(jsonDecode(response.body));
+        // Cache to Shared Pref
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+            userToken, authSuccessResponse.data?.token ?? "-");
+        await prefs.setString(
+            userName, authSuccessResponse.data?.username ?? "guest_user");
+        await prefs.setString(
+            userProfileName, authSuccessResponse.data?.profileName ?? "Guest");
         return Right(authSuccessResponse);
       } else {
         throw ServerException();
@@ -60,28 +87,32 @@ class AuthRepositoryImpl extends AuthRepository {
   }
 
   @override
-  Future<Either<Failure, AuthSuccessResponse>> userRegister(String userName, String profileName, String password) async {
+  Future<Either<Failure, AuthSuccessResponse>> userRegister(
+      String userName, String profileName, String password) async {
     if (!(await networkInfo.isConnected)) return Left(NoInternetFailure());
 
     try {
       final url = Uri.http(baseUrl, registerUrl);
       print("URL register remote data source: $url");
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
-        headers: {'Accept': '*/*','Content-Type': "application/json"},
+        headers: {'Accept': '*/*', 'Content-Type': "application/json"},
         body: jsonEncode({
           'username': userName,
           'profileName': profileName,
           'password': password,
         }),
-      ).timeout(const Duration(seconds: 5), onTimeout: (){
+      )
+          .timeout(const Duration(seconds: 5), onTimeout: () {
         throw TimeoutException("Time Out");
       });
 
       print("Response Register: $response");
 
       if (response.statusCode == 200) {
-        AuthSuccessResponse authSuccessResponse = AuthSuccessResponse.fromJson(jsonDecode(response.body));
+        AuthSuccessResponse authSuccessResponse =
+            AuthSuccessResponse.fromJson(jsonDecode(response.body));
         return Right(authSuccessResponse);
       } else {
         throw ServerException();
@@ -92,5 +123,4 @@ class AuthRepositoryImpl extends AuthRepository {
       return Left(ServerFailure());
     }
   }
-
 }
