@@ -24,3 +24,10 @@ class AuthFailed extends AuthState {
   @override
   List<Object> get props => [failure];
 }
+
+class AuthCacheNotFound extends AuthState {
+  Failure failure;
+  AuthCacheNotFound(this.failure);
+  @override
+  List<Object> get props => [failure];
+}

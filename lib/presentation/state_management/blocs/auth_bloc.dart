@@ -11,24 +11,30 @@ part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthRepository authRepository;
-  AuthBloc(this.authRepository) : super(AuthInitial()) {
+  AuthRepository _authRepository;
+  AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<RegisterEvent>((event, emit) async {
       emit(AuthLoading());
-      var response = await authRepository.userRegister(event.userName, event.profileName, event.password);
+      var response = await _authRepository.userRegister(event.userName, event.profileName, event.password);
       var newState = response.fold((l) => AuthFailed(l), (r) => AuthSuccess(r.data ?? const UserData()));
       emit(newState);
     });
     on<LoginEvent>((event, emit) async {
       emit(AuthLoading());
-      var response = await authRepository.userLogin(event.userName, event.password);
+      var response = await _authRepository.userLogin(event.userName, event.password);
       var newState = response.fold((l) => AuthFailed(l), (r) => AuthSuccess(r.data ?? const UserData()));
       emit(newState);
     });
     on<CheckLoginStatusEvent>((event, emit) async {
       emit(AuthLoading());
-      var response = await authRepository.checkLoginStatusCache();
-      var newState = response.fold((l) => AuthFailed(l), (r) => AuthSuccess(r.data ?? const UserData()));
+      var response = await _authRepository.checkLoginStatusCache();
+      var newState = response.fold((l) => AuthCacheNotFound(l), (r) => AuthSuccess(r.data ?? const UserData()));
+      emit(newState);
+    });
+    on<LogoutEvent>((event, emit) async {
+      emit(AuthLoading());
+      var response = await _authRepository.userLogout();
+      var newState = response.fold((l) => AuthCacheNotFound(l), (r) => AuthInitial());
       emit(newState);
     });
   }

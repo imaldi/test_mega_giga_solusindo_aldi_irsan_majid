@@ -20,6 +20,8 @@ abstract class AuthRepository {
       String userName, String password);
 
   Future<Either<Failure, AuthSuccessResponse>> checkLoginStatusCache();
+
+  Future<Either<Failure, bool>> userLogout();
 }
 
 class AuthRepositoryImpl extends AuthRepository {
@@ -75,6 +77,7 @@ class AuthRepositoryImpl extends AuthRepository {
             userName, authSuccessResponse.data?.username ?? "guest_user");
         await prefs.setString(
             userProfileName, authSuccessResponse.data?.profileName ?? "Guest");
+        await prefs.setInt(userID, authSuccessResponse.data?.id ?? 0);
         return Right(authSuccessResponse);
       } else {
         throw ServerException();
@@ -122,5 +125,11 @@ class AuthRepositoryImpl extends AuthRepository {
     } on TimeoutException {
       return Left(ServerFailure());
     }
+  }
+
+  @override
+  Future<Either<Failure, bool>> userLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    return Right(await prefs.clear());
   }
 }
