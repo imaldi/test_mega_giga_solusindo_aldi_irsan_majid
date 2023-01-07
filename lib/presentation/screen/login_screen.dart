@@ -1,6 +1,8 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/core/resource/const/colors.dart';
+import 'package:test_giga_mega_solusindo_aldi_irsan_majid/core/router/app_router.gr.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/presentation/widget/custom_text.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/presentation/widget/my_text_field.dart';
 import 'package:test_giga_mega_solusindo_aldi_irsan_majid/presentation/widget/my_toast.dart';
@@ -36,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocConsumer<AuthBloc,AuthState>(
         listener: (context,state){
           if(state is AuthSuccess) {
-            myToast("Logged In");
+            context.router.replace(const HomeRoute());
           }
           if(state is AuthCacheNotFound){
             myToast("Ga ada cache");
@@ -64,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     ElevatedButton(
                         onPressed: () {
-                          myToast("Login Pressed");
                           context.read<AuthBloc>().add(LoginEvent(usernameTEC.text, passwordTEC.text));
                         },
                         child: const CustomText(
@@ -82,17 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
             return Center(child: CircularProgressIndicator(color: primaryGreen,),);
           }
 
-          if(state is AuthSuccess){
-            return Center(child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(state.userData.toJson().toString() ?? ""),
-                ElevatedButton(onPressed: (){
-                  context.read<AuthBloc>().add(LogoutEvent());
-                }, child: const Text("Log Out"))
-              ],
-            ),);
-          }
           return Center(child: Text("AHAHAHA"),);
         }
       ),
